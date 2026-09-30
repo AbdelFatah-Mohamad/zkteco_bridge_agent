@@ -1,0 +1,33 @@
+/* Self-hosted and inline-free: the page must render on a PC with no route to
+   the internet, and the CSP forbids anything else anyway. */
+:root { --ink:#16191b; --muted:#5d6763; --line:#ccd4cf; --paper:#f2f4f2;
+        --ok:#2a6a3d; --bad:#9c2e1d; --accent:#0d6a62; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--paper); color:var(--ink); line-height:1.6;
+       font-family: "Segoe UI", Tahoma, system-ui, sans-serif; }
+header { display:flex; gap:18px; align-items:center; flex-wrap:wrap;
+         padding:12px 20px; background:#fff; border-bottom:2px solid var(--accent); }
+header nav { display:flex; gap:14px; }
+header a { color:var(--ink); text-decoration:none; }
+header a:hover { text-decoration:underline; }
+header .ver { margin-inline-start:auto; color:var(--muted); font-size:.85rem; }
+main { max-width:900px; margin-inline:auto; padding:20px; }
+footer { max-width:900px; margin-inline:auto; padding:20px; color:var(--muted); font-size:.85rem; }
+h1 { font-size:1.5rem; } h2 { font-size:1.05rem; margin-bottom:4px; }
+label { display:block; margin-top:14px; font-weight:600; }
+input, select { width:100%; max-width:480px; padding:8px; border:1px solid var(--line);
+                border-radius:3px; background:#fff; }
+button { margin-top:16px; padding:9px 18px; border:0; border-radius:3px;
+         background:var(--accent); color:#fff; cursor:pointer; font-size:1rem; }
+button:hover { filter:brightness(1.1); }
+.hint { color:var(--muted); font-size:.88rem; }
+.ok { color:var(--ok); font-weight:600; }
+.bad { color:var(--bad); font-weight:600; }
+.cards { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+.card { background:#fff; border:1px solid var(--line); border-radius:4px; padding:14px 16px; }
+.big { font-size:1.3rem; margin:2px 0; }
+table { border-collapse:collapse; width:100%; background:#fff; }
+th, td { padding:8px 10px; border-bottom:1px solid var(--line); text-align:start;
+         vertical-align:top; }
+pre { background:#fff; border:1px solid var(--line); padding:12px; overflow-x:auto;
+      font-size:.82rem; max-height:60vh; }

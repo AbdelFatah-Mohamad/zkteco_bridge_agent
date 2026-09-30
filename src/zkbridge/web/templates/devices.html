@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>{{ t('devices') }}</h1>
+{% if not snapshot.devices %}<p class="hint">{{ t('no_devices') }}</p>{% endif %}
+<table>
+  <tr><th>{{ t('device') }}</th><th>{{ t('address') }}</th><th>{{ t('last_result') }}</th><th></th></tr>
+  {% for key, info in snapshot.devices.items() %}
+  <tr>
+    <td>{{ info.name or key }}</td>
+    <td dir="ltr">{{ key }}</td>
+    <td>
+      {% if info.last_outcome == 'ok' %}<span class="ok">{{ t('ok') }}</span>
+      {% elif info.last_code %}<span class="bad">{{ info.last_code }}</span>
+      {% else %}–{% endif %}
+      {% if info.last_detail %}<br><span class="hint">{{ info.last_detail }}</span>{% endif %}
+    </td>
+    <td><button class="test" data-key="{{ key }}" data-csrf="{{ csrf }}">{{ t('test_device') }}</button></td>
+  </tr>
+  {% endfor %}
+</table>
+{% if snapshot.local_results %}
+<h2>{{ t('last_result') }}</h2>
+<ul>
+  {% for row in snapshot.local_results %}
+  <li dir="ltr">{{ row.device }} — {{ row.outcome }} {{ row.code or '' }} {{ row.detail or '' }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% endblock %}

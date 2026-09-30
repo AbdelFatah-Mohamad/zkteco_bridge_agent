@@ -1,0 +1,5 @@
+# Pinned exactly: a bridge is unattended software on somebody else's PC, and a
+# surprise minor version is not something anyone will be there to notice.
+flask==3.1.0
+waitress==3.0.2
+requests==2.32.3

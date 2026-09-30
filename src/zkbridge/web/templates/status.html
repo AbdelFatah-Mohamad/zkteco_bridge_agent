@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>{{ t('status') }}</h1>
+<section class="cards">
+  <div class="card" id="conn">
+    <h2>{{ t('connection') }}</h2>
+    <p class="big" id="state">–</p>
+    <p id="msg" class="hint"></p>
+  </div>
+  <div class="card">
+    <h2>{{ t('last_poll') }}</h2>
+    <p class="big" id="last">–</p>
+    <h2>{{ t('next_poll') }}</h2>
+    <p class="big" id="next">–</p>
+  </div>
+  <div class="card">
+    <h2>{{ t('waiting') }}</h2>
+    <p class="big" id="spool">–</p>
+  </div>
+</section>
+<form method="post" action="{{ url_for('api_poll_now') }}" id="pollnow">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit">{{ t('check_now') }}</button>
+</form>
+<h2>{{ t('running') }}</h2>
+<ul id="running"><li class="hint">{{ t('nothing_running') }}</li></ul>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% endblock %}

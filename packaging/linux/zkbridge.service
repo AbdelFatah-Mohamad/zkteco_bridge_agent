@@ -1,0 +1,30 @@
+[Unit]
+Description=ZKTeco LAN Bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zkbridge
+ExecStart=/opt/zkbridge/current/zkbridge
+Restart=always
+RestartSec=10
+
+# systemd creates these with the right owner, which is why config.py uses them.
+ConfigurationDirectory=zkbridge
+ConfigurationDirectoryMode=0700
+StateDirectory=zkbridge
+StateDirectoryMode=0700
+LogsDirectory=zkbridge
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# Empty, and it can be: the agent never pings, so it never needs a raw socket.
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

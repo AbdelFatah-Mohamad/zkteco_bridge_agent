@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>{{ t('sign_in') }}</h1>
+<form method="post">
+  <label for="pin">{{ t('pin') }}</label>
+  <input id="pin" name="pin" autocomplete="off" autofocus>
+  <p class="hint">{{ t('pin_hint') }}</p>
+  <button type="submit">{{ t('sign_in') }}</button>
+</form>
+{% endblock %}

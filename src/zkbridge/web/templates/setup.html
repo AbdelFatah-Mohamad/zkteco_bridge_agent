@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>{{ t('setup') }}</h1>
+<form method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label for="odoo_base_url">{{ t('odoo_url') }}</label>
+  <input id="odoo_base_url" name="odoo_base_url" value="{{ values.odoo_base_url }}"
+         placeholder="https://hr.example.com">
+  <label for="token">{{ t('token') }}</label>
+  <input id="token" name="token" value="" autocomplete="off" placeholder="zkb_...">
+  <p class="hint">{{ t('token_hint') }}</p>
+  <label for="bridge_label">{{ t('label') }}</label>
+  <input id="bridge_label" name="bridge_label" value="{{ values.bridge_label }}">
+  <label for="ui_lang">{{ t('language') }}</label>
+  <select id="ui_lang" name="ui_lang">
+    {% for code in languages %}
+    <option value="{{ code }}" {% if values.ui_lang == code %}selected{% endif %}>{{ code }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">{{ t('save_and_test') }}</button>
+</form>
+{% endblock %}

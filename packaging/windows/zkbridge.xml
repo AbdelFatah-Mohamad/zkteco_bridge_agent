@@ -1,0 +1,18 @@
+<!-- WinSW service definition.
+     WinSW rather than plain "sc create" on the exe: a console program is not a
+     service, and the SCM kills it after 30 seconds for never answering. And
+     rather than pywin32, whose pythonservice.exe stub is a well-known source
+     of "the service did not respond in a timely fashion". -->
+<service>
+  <id>ZKTecoBridge</id>
+  <name>ZKTeco Bridge (Alshayeb)</name>
+  <description>Reaches the biometric clocks on this network on behalf of Odoo.</description>
+  <executable>%BASE%\app\zkbridge.exe</executable>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <onfailure action="restart" delay="10 sec"/>
+  <log mode="roll-by-size">
+    <sizeThreshold>5120</sizeThreshold>
+    <keepFiles>5</keepFiles>
+  </log>
+</service>

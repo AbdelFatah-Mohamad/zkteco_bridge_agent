@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ dir }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t('app') }}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header>
+  <strong>{{ t('app') }}</strong>
+  <nav>
+    <a href="{{ url_for('home') }}">{{ t('status') }}</a>
+    <a href="{{ url_for('devices') }}">{{ t('devices') }}</a>
+    <a href="{{ url_for('logs') }}">{{ t('logs') }}</a>
+    <a href="{{ url_for('settings_page') }}">{{ t('settings') }}</a>
+  </nav>
+  <span class="ver">{{ t('version') }} {{ version }}</span>
+</header>
+<main>
+{% if message %}<p class="ok">{{ message }}</p>{% endif %}
+{% if error %}<p class="bad">{{ error }}</p>{% endif %}
+{% block body %}{% endblock %}
+</main>
+<footer>{{ t('support_note') }}</footer>
+</body>
+</html>
