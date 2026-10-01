@@ -4,13 +4,14 @@
 import hashlib
 import pathlib
 
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 PROTOCOL_VERSION = 1
 
 # Operations this build can actually carry out. The server never hands out a
 # job that is not declared here, so an older agent keeps doing attendance while
 # the one thing it cannot do waits, named, in the queue.
-CAPABILITIES = ['identity', 'list_users', 'pull_attendance']
+CAPABILITIES = ['identity', 'list_users', 'pull_attendance',
+                'push_users', 'delete_user', 'enroll_finger']
 
 
 def zk_fingerprint():

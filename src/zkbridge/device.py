@@ -11,6 +11,8 @@ every capability.
 import logging
 import socket
 
+from datetime import datetime
+
 from contextlib import contextmanager
 
 from .errors import IDENTITY_MISMATCH, PAYLOAD_REJECTED, PreflightError, classify
@@ -83,7 +85,15 @@ def _safe(getter, default=False):
 
 
 def read_identity(device):
+    # The terminal's own clock, read while connected anyway. A clock twenty
+    # minutes fast produces attendance twenty minutes wrong and passes every
+    # other check there is; reading it is the only way to see that.
+    device_now = _safe(device.get_time, None)
     info = {
+        # isinstance, not truthiness: whatever a firmware hands back has to end
+        # up JSON-serialisable, because this dict IS the wire payload.
+        'device_local_time': (device_now.strftime('%Y-%m-%d %H:%M:%S')
+                              if isinstance(device_now, datetime) else False),
         'device_model': _safe(device.get_device_name) or False,
         'firmware_version': _safe(device.get_firmware_version) or False,
         'platform': _safe(device.get_platform) or False,
@@ -155,11 +165,97 @@ def run_pull_attendance(device, request):
     return {'identity': identity, 'punches': serialise_attendance(device.get_attendance())}
 
 
+def run_push_users(device, request):
+    """Write employees onto the terminal, one outcome each.
+
+    set_user triggers a device-side refresh after *every* user, so three
+    hundred employees is three hundred round trips over minutes. Reporting a
+    single pass/fail for that would be useless: eleven written and the twelfth
+    refused is not "sync failed", and somebody has to be told which twelfth.
+    """
+    present = {str(u.user_id) for u in (device.get_users() or [])}
+    results = []
+    for entry in request.get('users') or []:
+        device_uid = str(entry.get('user_id'))
+        try:
+            device.set_user(int(entry.get('uid') or 0), entry.get('name') or '',
+                            int(entry.get('privilege') or 0), '', '', device_uid)
+            results.append({'user_id': device_uid, 'ok': True, 'error': None})
+        except Exception as exc:
+            results.append({'user_id': device_uid, 'ok': False,
+                            'error': str(exc)[:200]})
+    return {'users_on_device': sorted(present), 'results': results}
+
+
+def run_delete_user(device, request):
+    device_uid = str(request.get('user_id'))
+    present = any(str(u.user_id) == device_uid for u in (device.get_users() or []))
+    if present:
+        # Always pass user_id; the library would otherwise re-read every user
+        # on the terminal first, turning a one-packet delete into a bulk read.
+        device.delete_user(user_id=device_uid)
+    return {'user_id': device_uid, 'was_present': present, 'deleted': present}
+
+
+def enroll_recovery(block):
+    """Take the terminal out of enrolment mode after a failed enrol.
+
+    This is not optional. enroll_user restores the socket timeout and calls
+    cancel_capture / reg_event(0) / verify_user only on the path where it does
+    *not* raise -- so a timeout or a refusal escapes before any of them run and
+    leaves the terminal displaying "place finger" to every employee who walks
+    up to it for the rest of the day.
+
+    A fresh connection, never the poisoned handle: that one carries a sixty
+    second timeout it never gave back.
+    """
+    try:
+        with zk_session(block) as device:
+            for call in (device.cancel_capture, lambda: device.reg_event(0),
+                         device.verify_user):
+                try:
+                    call()
+                except Exception:
+                    _logger.debug('enrolment recovery step failed', exc_info=True)
+        _logger.info('terminal %s:%s taken out of enrolment mode',
+                     block.get('host'), block.get('port'))
+        return True
+    except Exception as exc:
+        _logger.warning('could not take %s:%s out of enrolment mode: %s',
+                        block.get('host'), block.get('port'), exc)
+        return False
+
+
+def run_enroll_finger(device, request):
+    """Ask the terminal for a fingerprint. Blocks on a human.
+
+    The library tries three times with a sixty second socket timeout on each of
+    two reads, so the honest worst case is minutes, not one minute. Resolve the
+    user first: enroll_user for someone the terminal does not know just returns
+    False, which is indistinguishable from a genuine enrolment failure.
+    """
+    device_uid = str(request.get('user_id'))
+    present = any(str(u.user_id) == device_uid for u in (device.get_users() or []))
+    if not present:
+        return {'user_id': device_uid, 'was_present': False, 'enrolled': False}
+    uid = request.get('uid')
+    enrolled = device.enroll_user(
+        uid=int(uid) if uid else (int(device_uid) if device_uid.isdigit() else 0),
+        user_id=device_uid)
+    return {'user_id': device_uid, 'was_present': True, 'enrolled': bool(enrolled)}
+
+
 OPERATIONS = {
     'identity': run_identity,
     'list_users': run_list_users,
     'pull_attendance': run_pull_attendance,
+    'push_users': run_push_users,
+    'delete_user': run_delete_user,
+    'enroll_finger': run_enroll_finger,
 }
+
+# After these, the terminal may be left mid-operation and has to be put back.
+NEEDS_RECOVERY = frozenset(['enroll_finger'])
 
 
 def execute(job):
@@ -180,4 +276,8 @@ def execute(job):
         return 'failed', {}, PAYLOAD_REJECTED, str(exc)
     except Exception as exc:
         code, detail = classify(exc)
+        if operation in NEEDS_RECOVERY:
+            # The terminal is probably still asking for a finger. Nobody at the
+            # customer's office knows why, and it will keep asking.
+            enroll_recovery(block)
         return 'failed', {}, code, detail

@@ -7,6 +7,7 @@ pins the coupling between the error classifier and the vendored library, which
 would otherwise rot into "every failure is bridge_error" without a single
 test going red.
 """
+import contextlib
 import hashlib
 import json
 import pathlib
@@ -20,6 +21,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'src'))
 from zkbridge import errors, i18n                       # noqa: E402
 from zkbridge.device import serialise_attendance        # noqa: E402
 from zkbridge.spool import Spool, chunk_records         # noqa: E402
+from unittest import mock                               # noqa: E402
+import zkbridge.device as device_mod                    # noqa: E402
 
 
 class FakeRecord(object):
@@ -164,6 +167,167 @@ class TestSpool(unittest.TestCase):
         self.spool.add_result(job, 'failed', {}, 'device_unreachable', 'no answer')
         # A fresh result_id, so this is a new submission rather than a replay.
         self.assertNotEqual(self.spool.next_batch()[0]['idempotency_key'], first)
+
+
+class FakeDeviceUser(object):
+    def __init__(self, uid, user_id, name='NN'):
+        self.uid = uid
+        self.user_id = user_id
+        self.name = name
+        self.privilege = 0
+
+
+def fake_terminal(users=()):
+    terminal = mock.MagicMock()
+    terminal.get_users.return_value = list(users)
+    terminal.get_time.return_value = datetime(2026, 10, 1, 9, 15, 7)
+    terminal.get_device_name.return_value = 'K50 Pro'
+    terminal.get_firmware_version.return_value = 'Ver 6.60'
+    terminal.get_platform.return_value = 'ZLM60_TFT'
+    terminal.get_serialnumber.return_value = 'SN-1'
+    terminal.get_mac.return_value = '00:17:61:00:00:01'
+    terminal.users, terminal.records, terminal.fingers = len(users), 0, 0
+    return terminal
+
+
+class TestIdentity(unittest.TestCase):
+
+    def test_the_terminal_clock_is_read(self):
+        """A clock twenty minutes fast produces attendance twenty minutes wrong
+        and passes every other check. Reading it is the only way to see it."""
+        info = device_mod.read_identity(fake_terminal())
+        self.assertEqual(info['device_local_time'], '2026-10-01 09:15:07')
+
+    def test_one_unsupported_getter_does_not_discard_the_others(self):
+        terminal = fake_terminal()
+        terminal.get_mac.side_effect = Exception('not supported on this firmware')
+        info = device_mod.read_identity(terminal)
+        self.assertFalse(info['device_mac'])
+        self.assertEqual(info['device_model'], 'K50 Pro')
+
+
+class TestPushUsers(unittest.TestCase):
+
+    def test_a_partial_push_names_the_one_that_failed(self):
+        """Eleven written and the twelfth refused is not 'sync failed'."""
+        terminal = fake_terminal()
+        terminal.set_user.side_effect = [None, Exception('device full')]
+        out = device_mod.run_push_users(terminal, {'users': [
+            {'uid': 1, 'user_id': '11', 'name': 'A'},
+            {'uid': 2, 'user_id': '12', 'name': 'B'}]})
+        self.assertEqual([r['ok'] for r in out['results']], [True, False])
+        self.assertEqual(out['results'][1]['user_id'], '12')
+        self.assertIn('device full', out['results'][1]['error'])
+
+
+class TestDeleteUser(unittest.TestCase):
+
+    def test_the_user_id_is_always_sent(self):
+        """Omitting it makes the library re-read every user on the terminal
+        first, turning a one-packet delete into a bulk read."""
+        terminal = fake_terminal([FakeDeviceUser(1, '37')])
+        device_mod.run_delete_user(terminal, {'user_id': '37'})
+        terminal.delete_user.assert_called_once_with(user_id='37')
+
+    def test_deleting_somebody_who_is_not_there_touches_nothing(self):
+        terminal = fake_terminal([])
+        out = device_mod.run_delete_user(terminal, {'user_id': '37'})
+        terminal.delete_user.assert_not_called()
+        self.assertFalse(out['was_present'])
+
+
+class TestEnrol(unittest.TestCase):
+
+    def test_an_unknown_user_is_refused_before_the_terminal_is_asked(self):
+        """enroll_user for somebody the terminal does not know just returns
+        False, which is indistinguishable from a real enrolment failure."""
+        terminal = fake_terminal([])
+        out = device_mod.run_enroll_finger(terminal, {'user_id': '37'})
+        terminal.enroll_user.assert_not_called()
+        self.assertFalse(out['was_present'])
+
+    def test_both_identifiers_are_passed(self):
+        terminal = fake_terminal([FakeDeviceUser(41, '37')])
+        terminal.enroll_user.return_value = True
+        out = device_mod.run_enroll_finger(terminal, {'user_id': '37', 'uid': 41})
+        terminal.enroll_user.assert_called_once_with(uid=41, user_id='37')
+        self.assertTrue(out['enrolled'])
+
+    def test_a_failed_enrolment_takes_the_terminal_out_of_enrolment_mode(self):
+        """Not optional. The library restores the socket and cancels the
+        capture only on the path where it does not raise, so a timeout leaves
+        the terminal asking every passer-by for a finger."""
+        block = {'host': '10.0.0.5', 'port': 4370, 'timeout': 5}
+        terminal = fake_terminal([FakeDeviceUser(41, '37')])
+        terminal.enroll_user.side_effect = Exception('timed out')
+        recovery = fake_terminal()
+        sessions = []
+
+        @contextlib.contextmanager
+        def _session(requested):
+            handle = terminal if not sessions else recovery
+            sessions.append(requested)
+            yield handle
+
+        with mock.patch.object(device_mod, 'zk_session', _session):
+            outcome, _data, code, _detail = device_mod.execute(
+                {'job_id': 1, 'operation': 'enroll_finger',
+                 'device': block, 'request': {'user_id': '37', 'uid': 41}})
+
+        self.assertEqual(outcome, 'failed')
+        self.assertEqual(len(sessions), 2, 'recovery must open a FRESH connection')
+        recovery.cancel_capture.assert_called_once()
+        recovery.verify_user.assert_called_once()
+        recovery.reg_event.assert_called_once_with(0)
+
+    def test_recovery_that_cannot_connect_does_not_mask_the_real_error(self):
+        """If the terminal has gone away entirely, the operator must still be
+        told why the enrolment failed -- not why the clean-up failed."""
+        block = {'host': '10.0.0.5', 'port': 4370, 'timeout': 5}
+        terminal = fake_terminal([FakeDeviceUser(41, '37')])
+        terminal.enroll_user.side_effect = Exception('Unauthenticated')
+        calls = []
+
+        @contextlib.contextmanager
+        def _session(requested):
+            calls.append(requested)
+            if len(calls) > 1:
+                raise OSError('the terminal has gone')
+            yield terminal
+
+        with mock.patch.object(device_mod, 'zk_session', _session):
+            outcome, _data, code, detail = device_mod.execute(
+                {'job_id': 1, 'operation': 'enroll_finger',
+                 'device': block, 'request': {'user_id': '37', 'uid': 41}})
+
+        self.assertEqual(outcome, 'failed')
+        self.assertEqual(code, errors.AUTH_FAILED, 'the enrolment error, not the cleanup one')
+        self.assertIn('Unauthenticated', detail)
+
+    def test_one_recovery_step_failing_does_not_stop_the_others(self):
+        """The three calls are independent; a terminal that refuses one may
+        still accept the one that actually clears the prompt."""
+        block = {'host': '10.0.0.5', 'port': 4370, 'timeout': 5}
+        terminal = fake_terminal()
+        terminal.cancel_capture.side_effect = Exception('refused')
+
+        @contextlib.contextmanager
+        def _session(requested):
+            yield terminal
+
+        with mock.patch.object(device_mod, 'zk_session', _session):
+            self.assertTrue(device_mod.enroll_recovery(block))
+        terminal.verify_user.assert_called_once()
+
+
+class TestCapabilities(unittest.TestCase):
+
+    def test_everything_declared_can_actually_be_run(self):
+        """The server never hands out a job the agent did not declare, so a
+        capability with no handler would be a job that waits forever."""
+        from zkbridge.version import CAPABILITIES
+        for name in CAPABILITIES:
+            self.assertIn(name, device_mod.OPERATIONS, name)
 
 
 if __name__ == '__main__':

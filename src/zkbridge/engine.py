@@ -108,8 +108,15 @@ class Engine(object):
                     'job_id': job.get('job_id'), 'operation': job.get('operation'),
                     'started': time.time(), 'source': job.get('_source', 'odoo')}
             started = time.time()
-            with self._slots:
+            # An enrolment holds a terminal for minutes while somebody places a
+            # finger on it. Letting it consume one of the few general slots
+            # means one person at one clock starves the attendance pulls on
+            # every other clock at the site, so it runs outside them.
+            if job.get('operation') in device_mod.NEEDS_RECOVERY:
                 outcome, data, code, detail = device_mod.execute(job)
+            else:
+                with self._slots:
+                    outcome, data, code, detail = device_mod.execute(job)
             elapsed = int((time.time() - started) * 1000)
             with self._lock:
                 self._running.pop(key, None)
