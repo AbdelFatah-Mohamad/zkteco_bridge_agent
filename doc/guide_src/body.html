@@ -1,0 +1,296 @@
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #eef0ee; --card: #f8f9f8; --ink: #14181a; --muted: #56615e;
+    --line: #c9d1cc; --line-soft: #dfe5e1; --accent: #0d6a62; --signal: #8f5a05;
+    --alert: #9c2e1d; --ok: #2a6a3d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --paper: #121616; --card: #1a201f; --ink: #e6ebe8; --muted: #97a39e;
+      --line: #2d3735; --line-soft: #222b29; --accent: #56bdb1;
+      --signal: #d9a13a; --alert: #e0705f; --ok: #71c08c;
+    }
+  }
+  body { background: var(--paper); color: var(--ink); margin: 0; direction: rtl;
+         font-family: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
+         font-size: 16px; line-height: 1.8; }
+  .wrap { max-width: 880px; margin-inline: auto; padding-inline: 20px; padding-block: 36px 80px; }
+  h1, h2, h3 { font-family: "Readex Pro", "IBM Plex Sans Arabic", sans-serif; text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(1.6rem, 5vw, 2.15rem); line-height: 1.35; }
+  h2 { font-size: 1.3rem; margin-block: 50px 14px; padding-bottom: 8px; border-bottom: 2px solid var(--line); }
+  h3 { font-size: 1.02rem; margin-block: 24px 8px; }
+  p { margin-block: 0 14px; }
+  .lead { font-size: 1.06rem; color: var(--muted); max-width: 62ch; }
+  .ui, code { font-family: "IBM Plex Mono", Consolas, ui-monospace, monospace; font-size: .86em;
+              direction: ltr; unicode-bidi: embed; background: var(--line-soft);
+              padding: .12em .42em; border-radius: 3px; }
+  pre { direction: ltr; text-align: left; background: #14181a; color: #e6ebe8;
+        padding: 14px 16px; border-radius: 4px; overflow-x: auto; font-size: .9rem;
+        font-family: "IBM Plex Mono", Consolas, monospace; margin: 8px 0 16px; }
+  .masthead { border-top: 4px solid var(--accent); padding-top: 18px; }
+  .who { font-family: "IBM Plex Mono", monospace; font-size: .76rem; letter-spacing: .1em;
+         color: var(--accent); direction: ltr; unicode-bidi: embed; margin: 0 0 12px; }
+
+  .parts { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+           margin-block: 22px 6px; }
+  .part { background: var(--card); border-top: 3px solid var(--accent); padding: 14px 16px; }
+  .part b { display: block; font-family: "Readex Pro", sans-serif; margin-bottom: 2px; }
+  .part span { color: var(--muted); font-size: .9rem; }
+
+  ol.steps { counter-reset: step; list-style: none; padding: 0; margin: 0 0 10px; }
+  ol.steps > li { counter-increment: step; position: relative; padding-inline-start: 42px;
+                  margin-bottom: 16px; }
+  ol.steps > li::before { content: counter(step); position: absolute; inset-inline-start: 0; top: 2px;
+                          width: 28px; height: 28px; border-radius: 50%; background: var(--accent);
+                          color: #fff; font-size: .88rem; display: flex; align-items: center;
+                          justify-content: center; font-family: "IBM Plex Mono", monospace; }
+
+  figure { margin: 14px 0 26px; }
+  figure img { display: block; width: 100%; max-width: 100%; border: 1px solid var(--line); }
+  figcaption { font-size: .86rem; color: var(--muted); margin-top: 7px; }
+  figcaption b { color: var(--ink); }
+
+  .note { border: 1px solid var(--line); background: var(--card); padding: 14px 18px; margin-block: 16px; }
+  .note .t { font-weight: 600; display: block; margin-bottom: 3px; }
+  .note.warn { border-color: var(--signal); border-inline-start: 4px solid var(--signal); }
+  .note.stop { border-color: var(--alert); border-inline-start: 4px solid var(--alert); }
+
+  ul.check { list-style: none; padding: 0; margin: 0 0 12px; }
+  ul.check li { padding-inline-start: 28px; position: relative; margin-bottom: 8px; }
+  ul.check li::before { content: "☐"; position: absolute; inset-inline-start: 0; color: var(--accent);
+                        font-size: 1.1rem; line-height: 1.5; }
+
+  .tablewrap { overflow-x: auto; margin-block: 10px 20px; }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; min-width: 520px; }
+  th, td { padding: 10px 12px; border-bottom: 1px solid var(--line-soft); text-align: start; vertical-align: top; }
+  thead th { border-bottom: 1px solid var(--line); color: var(--muted); font-size: .84rem; font-weight: 600; }
+  td:first-child { font-weight: 600; white-space: nowrap; }
+  .foot { color: var(--muted); font-size: .88rem; }
+
+  @media print {
+    body { background: #fff; font-size: 11pt; }
+    h2, h3 { page-break-after: avoid; }
+    figure, .note, pre, .tablewrap { page-break-inside: avoid; }
+  }
+</style>
+
+<div class="wrap" lang="ar" dir="rtl">
+
+  <div class="masthead">
+    <p class="who">ZKTeco LAN Bridge · Windows · Odoo 19</p>
+    <h1>تشغيل جسر ZKTeco على ويندوز وربطه بأودو</h1>
+    <p class="lead">
+      بعض ساعات البصمة لا يستطيع خادم أودو الوصول إليها لأنها داخل شبكة الشركة. الجسر برنامج صغير
+      يعمل على جهاز كمبيوتر داخل نفس الشبكة: يتصل هو بأودو كل ربع ساعة، يأخذ ما عنده من مهام
+      (سحب البصمات، إضافة موظف، تسجيل بصمة…)، ينفّذها على الساعات، ويُرجع النتيجة.
+      لا يحتاج أي منفذ مفتوح من الخارج.
+    </p>
+  </div>
+
+  <div class="parts">
+    <div class="part"><b>١ · في أودو</b><span>إنشاء الجسر، أخذ التوكن، وربط الساعات به. حوالي ٥ دقائق.</span></div>
+    <div class="part"><b>٢ · على جهاز ويندوز</b><span>تثبيت البرنامج وإدخال العنوان والتوكن. حوالي ١٠ دقائق.</span></div>
+    <div class="part"><b>٣ · التأكد</b><span>الجسر يظهر «Online» في أودو والبصمات تبدأ بالوصول.</span></div>
+  </div>
+
+  <h2>قبل أن تبدأ</h2>
+  <ul class="check">
+    <li><b>جهاز ويندوز ١٠ أو ١١</b> يبقى يعمل طوال الوقت، داخل نفس شبكة الساعات.
+        لا يلزم أن يكون مخصصاً لهذا، يكفي أي جهاز مكتبي لا يُطفأ.</li>
+    <li><b>صلاحية Administrator</b> على هذا الجهاز أثناء التثبيت فقط.</li>
+    <li><b>مجلد البرنامج <span class="ui">ZKBridge</span></b> من شريك أودو، وفيه:
+        <span class="ui">install.ps1</span> و<span class="ui">winsw.exe</span> و<span class="ui">zkbridge.xml</span> ومجلد <span class="ui">zkbridge</span>.</li>
+    <li><b>الشبكة:</b> يجب أن يصل الجهاز إلى عنوان أودو عبر <span class="ui">HTTPS (443)</span>،
+        وإلى كل ساعة عبر <span class="ui">TCP 4370</span>. <b>لا شيء من الخارج إلى الجهاز</b> — لا تفتح أي منفذ.</li>
+    <li><b>عنوان IP لكل ساعة</b> مُدخل في أودو بشكل صحيح (يظهر على شاشة الساعة في إعدادات الاتصال).</li>
+  </ul>
+
+  <div class="note warn">
+    <span class="t">امنع الجهاز من السكون</span>
+    إذا دخل الجهاز في وضع السكون يتوقف الجسر. من <span class="ui">Settings ← System ← Power</span>
+    اجعل «Put my device to sleep» على <b>Never</b> عند التوصيل بالكهرباء.
+    إطفاء الجهاز لا يُضيّع أي بصمة — الساعات تحتفظ بكل سجلاتها، والجسر يكمل من حيث توقف عند عودته —
+    لكن البصمات لا تصل إلى أودو ما دام مطفأً.
+  </div>
+
+  <!-- ========================================================= -->
+  <h2>الجزء الأول — في أودو</h2>
+
+  <h3>١. أنشئ الجسر</h3>
+  <ol class="steps">
+    <li>افتح <span class="ui">ZKTeco ← Device Settings ← LAN Bridges</span> واضغط <span class="ui">New</span>.</li>
+    <li>اكتب اسماً يدل على مكان الجهاز، مثل «جهاز الاستقبال — المصنع»، ثم احفظ.</li>
+  </ol>
+  <figure>
+    <img src="IMG:odoo_bridge_form" alt="شاشة إنشاء الجسر في أودو">
+    <figcaption><b>بطاقة الجسر.</b> التحذير الأصفر يعني أن التوكن لم يُولَّد بعد. في الجهة اليمنى
+      «What to enter on the PC» العنوان الذي ستحتاجه لاحقاً، مع زر نسخ.</figcaption>
+  </figure>
+
+  <h3>٢. ولّد التوكن وانسخه فوراً</h3>
+  <ol class="steps">
+    <li>اضغط <span class="ui">Generate Token</span> ثم وافق على التأكيد.</li>
+    <li>يظهر التوكن في رسالة أعلى الشاشة. <b>انسخه كاملاً الآن</b> واحفظه مؤقتاً (مثلاً في Notepad).</li>
+  </ol>
+  <figure>
+    <img src="IMG:odoo_token" alt="رسالة التوكن">
+    <figcaption><b>التوكن يُعرض مرة واحدة فقط.</b> أودو لا يحتفظ به، فلا يمكن عرضه مرة أخرى.
+      إن ضاع، اضغط Generate Token من جديد — التوكن القديم يتوقف فوراً.</figcaption>
+  </figure>
+
+  <div class="note stop">
+    <span class="t">التوكن مثل كلمة السر</span>
+    من يملكه يستطيع إرسال بصمات باسم هذه الساعات. لا ترسله في مجموعة واتساب ولا في بريد عام،
+    واحذفه من Notepad بعد إدخاله في الجسر.
+  </div>
+
+  <h3>٣. اربط كل ساعة بالجسر</h3>
+  <ol class="steps">
+    <li>افتح <span class="ui">ZKTeco ← Device Settings ← Device Configuration</span> واختر الساعة.</li>
+    <li>في حقل <span class="ui">LAN Bridge</span> اختر الجسر الذي أنشأته، ثم احفظ.</li>
+    <li>كرّر لكل ساعة في نفس الشبكة. الجسر الواحد يخدم كل ساعات شبكته.</li>
+  </ol>
+  <figure>
+    <img src="IMG:odoo_device" alt="بطاقة الساعة وحقل LAN Bridge">
+    <figcaption><b>بعد الربط</b> يظهر شريط أزرق في تبويب Device Operations: الأزرار نفسها تعمل، لكنها
+      الآن تضع المهمة في انتظار الجسر بدل الاتصال المباشر، والنتيجة تظهر بعد أن يستلمها.</figcaption>
+  </figure>
+
+  <!-- ========================================================= -->
+  <h2>الجزء الثاني — على جهاز ويندوز</h2>
+
+  <h3>٤. شغّل التثبيت</h3>
+  <ol class="steps">
+    <li>انسخ مجلد <span class="ui">ZKBridge</span> إلى الجهاز، مثلاً على سطح المكتب.</li>
+    <li>افتح قائمة Start، اكتب <span class="ui">PowerShell</span>، ثم اضغط بالزر الأيمن واختر
+        <span class="ui">Run as administrator</span>.</li>
+    <li>انتقل إلى المجلد ونفّذ أمر التثبيت:</li>
+  </ol>
+<pre>cd "$env:USERPROFILE\Desktop\ZKBridge"
+powershell -ExecutionPolicy Bypass -File .\install.ps1</pre>
+  <p>
+    التثبيت يضع البرنامج في <span class="ui">C:\Program Files\AlshayebCo\ZKBridge</span>،
+    يسجّله كخدمة ويندوز باسم <span class="ui">ZKTecoBridge</span> تبدأ تلقائياً مع تشغيل الجهاز
+    حتى لو لم يسجّل أحد الدخول، ثم يفتح المتصفح على صفحة الجسر.
+  </p>
+
+  <div class="note warn">
+    <span class="t">اكتب رمز الدخول الذي يظهر في نهاية التثبيت</span>
+    في آخر سطور PowerShell يظهر <b>Access code</b> من ١٠ أحرف. ستحتاجه لفتح صفحة الجسر.
+    إن ضاع، تجده لاحقاً في الملف <span class="ui">C:\ProgramData\AlshayebCo\ZKBridge\ui_pin.txt</span>
+    (يفتحه مدير الجهاز فقط).
+  </div>
+
+  <h3>٥. ادخل إلى صفحة الجسر</h3>
+  <ol class="steps">
+    <li>إن لم تُفتح تلقائياً، افتح المتصفح على <span class="ui">http://127.0.0.1:8709</span>.</li>
+    <li>أدخل رمز الدخول واضغط «دخول».</li>
+  </ol>
+  <figure>
+    <img src="IMG:agent_signin" alt="صفحة دخول الجسر">
+    <figcaption><b>الصفحة تعمل على هذا الجهاز فقط.</b> لا يمكن فتحها من جهاز آخر في الشبكة، وهذا مقصود.</figcaption>
+  </figure>
+
+  <h3>٦. أدخل عنوان أودو والتوكن</h3>
+  <ol class="steps">
+    <li><b>عنوان أودو:</b> عنوان نظامكم، مثل <span class="ui">https://hr.company.com</span>.
+        يمكنك أيضاً لصق العنوان كما يظهر في بطاقة الجسر في أودو — الصيغتان مقبولتان.</li>
+    <li><b>توكن الجسر:</b> الصق التوكن الذي نسخته في الخطوة ٢.</li>
+    <li><b>اسم هذا الجهاز</b> و<b>اللغة</b> حسب رغبتك.</li>
+    <li>اضغط <b>«حفظ واختبار»</b>. البرنامج يتصل بأودو فعلياً قبل الحفظ، فإن ظهر خطأ فلن يُحفظ شيء.</li>
+  </ol>
+  <figure>
+    <img src="IMG:agent_setup" alt="صفحة إعداد الجسر">
+    <figcaption><b>«أودو قبل هذا الجسر»</b> تعني أن الربط نجح. أي رسالة أخرى تجد تفسيرها في جدول المشاكل أسفل الصفحة.</figcaption>
+  </figure>
+
+  <h3>٧. تأكد من الحالة</h3>
+  <figure>
+    <img src="IMG:agent_status" alt="صفحة حالة الجسر">
+    <figcaption><b>«يعمل»</b> تحت «الاتصال بأودو» تعني أن الجسر متصل. «الاتصال القادم» يعدّ تنازلياً
+      حتى الاتصال التالي. زر «اتصل بأودو الآن» يجعله يتصل فوراً دون انتظار.</figcaption>
+  </figure>
+
+  <!-- ========================================================= -->
+  <h2>الجزء الثالث — التأكد من أودو</h2>
+
+  <ol class="steps">
+    <li>ارجع إلى بطاقة الجسر في أودو. يجب أن تصبح الحالة <span class="ui">Online</span> باللون الأخضر،
+        ويظهر قسم <span class="ui">Agent</span> باسم الجهاز ونسخة البرنامج ووقت آخر اتصال.</li>
+    <li>افتح أي ساعة واضغط <span class="ui">Download Attendance Logs</span>. ستظهر رسالة أن المهمة في الانتظار.</li>
+    <li>من صفحة الجسر اضغط «اتصل بأودو الآن» إن أردت عدم الانتظار. خلال دقيقة تقريباً تظهر البصمات في أودو.</li>
+  </ol>
+  <figure>
+    <img src="IMG:odoo_bridge_online" alt="الجسر متصل في أودو">
+    <figcaption><b>الربط مكتمل.</b> الحالة Online، وقسم Agent يُظهر الجهاز الذي يتصل. Clock Skew هو الفرق
+      بين ساعة جهاز الكمبيوتر وساعة الخادم — للمعلومة فقط، لا يؤثر على شيء.</figcaption>
+  </figure>
+
+  <div class="note">
+    <span class="t">كم مرة يتصل الجسر؟</span>
+    كل ١٥ دقيقة عندما لا يوجد عمل، وكل دقيقة تقريباً ما دامت هناك مهام قيد التنفيذ.
+    يمكن تغيير الفترة من بطاقة الجسر في أودو (Poll Interval)، وتنتقل للجهاز تلقائياً في الاتصال التالي.
+    تسجيل البصمة لموظف يتطلب أن يكون الموظف أمام الساعة عندما يستلم الجسر المهمة.
+  </div>
+
+  <!-- ========================================================= -->
+  <h2>إن ظهرت مشكلة</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>ما تراه</th><th>السبب الغالب</th><th>الحل</th></tr></thead>
+      <tbody>
+        <tr><td>أودو رفض التوكن</td>
+            <td>التوكن ناقص، أو وُلّد توكن جديد بعده، أو الجسر مؤرشف في أودو.</td>
+            <td>ولّد توكناً جديداً من بطاقة الجسر وأدخله من صفحة «الإعدادات» في الجسر.</td></tr>
+        <tr><td>تعذر الوصول إلى أودو</td>
+            <td>لا إنترنت، أو جدار ناري يمنع 443، أو بروكسي، أو خطأ في العنوان.</td>
+            <td>افتح عنوان أودو من متصفح نفس الجهاز. إن لم يفتح فالمشكلة في الشبكة لا في الجسر.</td></tr>
+        <tr><td>الساعة «لا يستجيب»</td>
+            <td>الساعة مطفأة، أو عنوان IP في أودو خاطئ، أو الساعة في شبكة أخرى.</td>
+            <td>من cmd على نفس الجهاز: <span class="ui">ping 192.168.1.201</span>. صحّح الـ IP في بطاقة الساعة.</td></tr>
+        <tr><td><span class="ui">device_auth_failed</span></td>
+            <td>كلمة سر الاتصال (Comm Key) في أودو لا تطابق الساعة.</td>
+            <td>صحّحها في بطاقة الساعة في أودو، أو امسحها من الساعة.</td></tr>
+        <tr><td><span class="ui">device_identity_mismatch</span></td>
+            <td>عنوان الـ IP يصل إلى ساعة أخرى غير المسجّلة (الرقم التسلسلي مختلف).</td>
+            <td>الجسر <b>رفض العمل عمداً</b> كي لا تُسجَّل بصمات ساعة باسم أخرى. تحقق من الـ IP.</td></tr>
+        <tr><td>صفحة الجسر لا تفتح</td>
+            <td>الخدمة متوقفة.</td>
+            <td>من <span class="ui">services.msc</span> ابحث عن «ZKTeco Bridge (Alshayeb)» واضغط Start.</td></tr>
+        <tr><td>هذا الجسر قديم</td>
+            <td>تحديث على أودو يتطلب نسخة أحدث من البرنامج.</td>
+            <td>اطلب من شريك أودو النسخة الجديدة وأعد التثبيت فوق القديمة؛ الإعدادات تبقى.</td></tr>
+        <tr><td>نسيت رمز الدخول</td>
+            <td>—</td>
+            <td>كمدير للجهاز افتح <span class="ui">C:\ProgramData\AlshayebCo\ZKBridge\ui_pin.txt</span>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>عند طلب الدعم</h3>
+  <p>
+    أرسل لقطة من صفحة «الحالة» في الجسر، والملف
+    <span class="ui">C:\ProgramData\AlshayebCo\ZKBridge\logs\zkbridge.log</span>.
+    السجل لا يحتوي التوكن ولا كلمات سر الساعات — تُحذف منه تلقائياً.
+  </p>
+
+  <h2>أوامر مفيدة (PowerShell كمدير)</h2>
+<pre># إعادة تشغيل الجسر
+Restart-Service ZKTecoBridge
+
+# حالته
+Get-Service ZKTecoBridge
+
+# إزالته نهائياً
+&amp; "C:\Program Files\AlshayebCo\ZKBridge\zkbridge-service.exe" stop
+&amp; "C:\Program Files\AlshayebCo\ZKBridge\zkbridge-service.exe" uninstall</pre>
+
+  <p class="foot">
+    أماكن الملفات: البرنامج في <span class="ui">C:\Program Files\AlshayebCo\ZKBridge</span>،
+    والإعدادات والسجلات في <span class="ui">C:\ProgramData\AlshayebCo\ZKBridge</span>
+    (محمية، لا يقرأها إلا مدير الجهاز). اللقطات في هذا الدليل من نسخة اختبارية.
+  </p>
+
+</div>

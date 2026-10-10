@@ -95,6 +95,24 @@ what plaintext costs anyway, without a Windows-only code path. Anyone who can
 read that directory can read the token; the answer is one-click revocation in
 Odoo, not local obfuscation.
 
+## The setup guide
+
+`doc/WINDOWS_SETUP_ar.html` is the step-by-step Windows guide for the person
+installing the bridge at a customer site. The same page is opened from the
+bridge's own **Guide** link (`/guide`, readable without the access code, since
+it says where to find the code) and from the **Windows Setup Guide** button on
+the bridge form in Odoo.
+
+Three copies would drift within a release, so there is one source. Edit
+`doc/guide_src/body.html` and the screenshots in `doc/guide_src/img/`, then:
+
+```sh
+python3 doc/guide_src/build_guide.py ../AlshayebCo/dps_zkteco_biometric_integration
+```
+
+which writes all three. The copy inside the program carries no web fonts: its
+page allows no outside requests, and the PC may have no route to them anyway.
+
 ## Tests
 
 ```sh

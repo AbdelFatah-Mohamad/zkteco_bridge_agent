@@ -4,7 +4,7 @@
 import hashlib
 import pathlib
 
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 PROTOCOL_VERSION = 1
 
 # Operations this build can actually carry out. The server never hands out a

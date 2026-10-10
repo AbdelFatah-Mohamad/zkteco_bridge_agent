@@ -74,7 +74,10 @@ def create_app(paths, engine, status, spool):
                 sent = request.form.get('csrf') or request.headers.get('X-CSRF-Token')
                 if not sent or not secrets.compare_digest(sent, session.get('csrf', '')):
                     abort(403)
-        if request.endpoint in ('sign_in', 'static'):
+        # The guide is open without the access code on purpose: it is static,
+        # carries nothing secret, and the person who forgot the code is the one
+        # who most needs to read where to find it.
+        if request.endpoint in ('sign_in', 'static', 'guide'):
             return None
         if not session.get('ok'):
             return redirect(url_for('sign_in'))
@@ -92,8 +95,11 @@ def create_app(paths, engine, status, spool):
         # and nobody can sign in from a real browser at all -- while curl, which
         # sends no Origin, passes every test. Found writing the install guide.
         response.headers['Referrer-Policy'] = 'same-origin'
+        # The guide is one self-contained page with its styles inline, so it
+        # alone may use inline style. Still no script, and nothing from outside.
+        style = "'self' 'unsafe-inline'" if request.endpoint == 'guide' else "'self'"
         response.headers['Content-Security-Policy'] = (
-            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:")
+            "default-src 'self'; script-src 'self'; style-src %s; img-src 'self' data:" % style)
         return response
 
     # -- sign in ---------------------------------------------------
@@ -159,6 +165,12 @@ def create_app(paths, engine, status, spool):
     @app.route('/devices')
     def devices():
         return render('devices.html', snapshot=engine.snapshot())
+
+    @app.route('/guide')
+    def guide():
+        """The Windows setup guide, the same page Odoo opens from the bridge
+        form. Built by doc/guide_src/build_guide.py; never edit the copy."""
+        return app.send_static_file('guide_ar.html')
 
     @app.route('/logs')
     def logs():

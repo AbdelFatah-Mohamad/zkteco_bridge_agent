@@ -334,6 +334,47 @@ class TestBaseUrl(unittest.TestCase):
             self.assertEqual(normalise_base_url(pasted), 'https://hr.example.com', pasted)
 
 
+class TestGuidePage(unittest.TestCase):
+    """The guide inside the program, behind its own security headers."""
+
+    def setUp(self):
+        from zkbridge import config as config_mod
+        from zkbridge.engine import Engine
+        from zkbridge.web.app import create_app
+        self.tmp = tempfile.TemporaryDirectory()
+        paths = config_mod.Paths(self.tmp.name)
+        paths.ensure()
+        spool = Spool(paths.spool_db)
+        self.client = create_app(paths, Engine(spool), {}, spool).test_client()
+        self.host = {'Host': '127.0.0.1:%s' % config_mod.DEFAULT_UI_PORT}
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_the_guide_opens_without_the_access_code(self):
+        """The person who forgot the code is the one who needs the page that
+        says where to find it."""
+        response = self.client.get('/guide', headers=self.host)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('ui_pin.txt', response.get_data(as_text=True))
+
+    def test_only_the_guide_may_use_inline_style(self):
+        guide = self.client.get('/guide', headers=self.host)
+        signin = self.client.get('/signin', headers=self.host)
+        self.assertIn("'unsafe-inline'", guide.headers['Content-Security-Policy'])
+        self.assertNotIn("'unsafe-inline'", signin.headers['Content-Security-Policy'])
+        self.assertIn("script-src 'self'", guide.headers['Content-Security-Policy'])
+
+    def test_the_bundled_guide_loads_nothing_from_outside(self):
+        """The PC may have no route to the internet, and the page forbids it."""
+        body = self.client.get('/guide', headers=self.host).get_data(as_text=True)
+        self.assertNotIn('fonts.googleapis.com', body)
+
+    def test_the_other_pages_still_need_the_code(self):
+        response = self.client.get('/', headers=self.host)
+        self.assertEqual(response.status_code, 302)
+
+
 class TestCapabilities(unittest.TestCase):
 
     def test_everything_declared_can_actually_be_run(self):

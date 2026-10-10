@@ -4,7 +4,8 @@
 <form method="post">
   <label for="pin">{{ t('pin') }}</label>
   <input id="pin" name="pin" autocomplete="off" autofocus>
-  <p class="hint">{{ t('pin_hint') }}</p>
+  <p class="hint">{{ t('pin_hint') }}
+    <a href="{{ url_for('guide') }}" target="_blank" rel="noopener">{{ t('guide') }}</a></p>
   <button type="submit">{{ t('sign_in') }}</button>
 </form>
 {% endblock %}
