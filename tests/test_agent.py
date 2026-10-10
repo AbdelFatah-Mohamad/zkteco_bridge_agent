@@ -320,6 +320,20 @@ class TestEnrol(unittest.TestCase):
         terminal.verify_user.assert_called_once()
 
 
+class TestBaseUrl(unittest.TestCase):
+
+    def test_the_address_odoo_shows_is_accepted_as_pasted(self):
+        """Odoo's form shows the full endpoint under 'What to enter on the PC';
+        taking it at its word must not produce a doubled path and a 404."""
+        from zkbridge.config import normalise_base_url
+        for pasted in ('https://hr.example.com',
+                       'https://hr.example.com/',
+                       'https://hr.example.com/zkteco/bridge/v1',
+                       'https://hr.example.com/zkteco/bridge/v1/',
+                       ' https://hr.example.com/zkteco/bridge/v1/poll '):
+            self.assertEqual(normalise_base_url(pasted), 'https://hr.example.com', pasted)
+
+
 class TestCapabilities(unittest.TestCase):
 
     def test_everything_declared_can_actually_be_run(self):

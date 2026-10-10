@@ -29,6 +29,16 @@ def single_instance_guard(port):
     Windows and Linux -- no fcntl/msvcrt split and no stale-pid-file guessing.
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
+        # Windows: SO_REUSEADDR there would let a second process bind the same
+        # port, which is the opposite of a lock.
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+    else:
+        # Without this, a restart within a minute of the last stop finds the
+        # port in TIME_WAIT, concludes another copy is running and exits -- and
+        # the service manager restarts it ten seconds later into the same
+        # wall. On Linux it does not allow two listeners, so the lock holds.
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         sock.bind(('127.0.0.1', port))
     except OSError:

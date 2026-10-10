@@ -10,7 +10,9 @@
         var el = document.getElementById(id);
         if (el) { el.textContent = text; }
       };
-      set('state', d.state || '–');
+      var stateEl = document.getElementById('state');
+      var labels = stateEl ? JSON.parse(stateEl.dataset.labels || '{}') : {};
+      set('state', labels[d.state] || d.state || '–');
       set('msg', d.message || '');
       set('last', fmtAgo(d.last_poll_at));
       set('next', d.next_poll_at ? Math.max(0, Math.round(d.next_poll_at - Date.now() / 1000)) + 's' : '–');

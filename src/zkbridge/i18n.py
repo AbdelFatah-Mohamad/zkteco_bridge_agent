@@ -22,7 +22,7 @@ STRINGS = {
         'too_many': 'Too many attempts. Wait a few minutes.',
         'odoo_url': 'Odoo address',
         'token': 'Bridge token',
-        'token_hint': 'Generated in Odoo under Attendances → Configuration → LAN Bridges.',
+        'token_hint': 'Generated in Odoo under ZKTeco → Device Settings → LAN Bridges.',
         'label': 'Name for this PC',
         'language': 'Language',
         'save_and_test': 'Save and test',
@@ -59,6 +59,7 @@ STRINGS = {
         'upgrade_required_state': 'This bridge is too old',
         'error_state': 'Cannot reach Odoo',
         'ok_state': 'Working',
+        'starting_state': 'Starting',
         'support_note': 'If something is wrong, send this page and the log to your Odoo partner.',
     },
     'ar': {
@@ -75,7 +76,7 @@ STRINGS = {
         'too_many': 'محاولات كثيرة. انتظر بضع دقائق.',
         'odoo_url': 'عنوان أودو',
         'token': 'توكن الجسر',
-        'token_hint': 'يُولَّد في أودو من الحضور ← الإعدادات ← جسور الشبكة المحلية.',
+        'token_hint': 'يُولَّد في أودو من ZKTeco ← Device Settings ← LAN Bridges.',
         'label': 'اسم هذا الجهاز',
         'language': 'اللغة',
         'save_and_test': 'حفظ واختبار',
@@ -112,6 +113,7 @@ STRINGS = {
         'upgrade_required_state': 'هذا الجسر قديم',
         'error_state': 'تعذر الوصول إلى أودو',
         'ok_state': 'يعمل',
+        'starting_state': 'يبدأ التشغيل',
         'support_note': 'إن حدث خلل، أرسل هذه الصفحة والسجل إلى شريك أودو لديك.',
     },
 }

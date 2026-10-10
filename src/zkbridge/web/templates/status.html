@@ -4,7 +4,7 @@
 <section class="cards">
   <div class="card" id="conn">
     <h2>{{ t('connection') }}</h2>
-    <p class="big" id="state">–</p>
+    <p class="big" id="state" data-labels='{{ state_labels | tojson }}'>–</p>
     <p id="msg" class="hint"></p>
   </div>
   <div class="card">

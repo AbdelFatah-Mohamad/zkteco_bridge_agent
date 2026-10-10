@@ -153,6 +153,26 @@ def save_config(paths, values):
     return values
 
 
+BRIDGE_PATH = '/zkteco/bridge/v1'
+
+
+def normalise_base_url(value):
+    """The Odoo address, however it was pasted.
+
+    Odoo's bridge form shows the full endpoint (".../zkteco/bridge/v1") under
+    "What to enter on the PC", and the program appends that path itself. Taking
+    the label at its word would produce ".../v1/zkteco/bridge/v1/poll" and a
+    404 that nobody at the customer's office could diagnose, so both forms are
+    accepted.
+    """
+    base = (value or '').strip().rstrip('/')
+    for suffix in (BRIDGE_PATH + '/poll', BRIDGE_PATH + '/result', BRIDGE_PATH):
+        if base.endswith(suffix):
+            base = base[:-len(suffix)].rstrip('/')
+            break
+    return base
+
+
 def is_configured(values):
     return bool(values.get('odoo_base_url') and values.get('token'))
 

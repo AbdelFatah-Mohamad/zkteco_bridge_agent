@@ -71,7 +71,7 @@ class Poller(object):
         return {'timeout': (CONNECT_TIMEOUT, READ_TIMEOUT), 'verify': verify}
 
     def _url(self, values, path):
-        base = (values.get('odoo_base_url') or '').rstrip('/')
+        base = config_mod.normalise_base_url(values.get('odoo_base_url'))
         if not base:
             raise ValueError('no Odoo address configured')
         if base.startswith('http://') and not values.get('allow_insecure'):

@@ -87,7 +87,11 @@ def create_app(paths, engine, status, spool):
     def _headers(response):
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['Referrer-Policy'] = 'no-referrer'
+        # same-origin, NOT no-referrer. Under no-referrer Chrome and Edge send
+        # `Origin: null` on every form POST, the Origin check below refuses it,
+        # and nobody can sign in from a real browser at all -- while curl, which
+        # sends no Origin, passes every test. Found writing the install guide.
+        response.headers['Referrer-Policy'] = 'same-origin'
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:")
         return response
@@ -119,7 +123,12 @@ def create_app(paths, engine, status, spool):
 
     @app.route('/')
     def home():
-        return render('status.html', snapshot=engine.snapshot(), spool=spool.stats())
+        language = lang()
+        labels = {state: t('%s_state' % state, language) for state in (
+            'ok', 'error', 'unauthorized', 'rate_limited', 'upgrade_required',
+            'unconfigured', 'starting')}
+        return render('status.html', snapshot=engine.snapshot(), spool=spool.stats(),
+                      state_labels=labels)
 
     @app.route('/setup', methods=['GET', 'POST'])
     def setup():
@@ -128,7 +137,7 @@ def create_app(paths, engine, status, spool):
         if request.method == 'POST':
             candidate = dict(values)
             candidate.update(
-                odoo_base_url=(request.form.get('odoo_base_url') or '').strip().rstrip('/'),
+                odoo_base_url=config_mod.normalise_base_url(request.form.get('odoo_base_url')),
                 token=(request.form.get('token') or '').strip(),
                 bridge_label=(request.form.get('bridge_label') or '').strip(),
                 ui_lang=request.form.get('ui_lang') or 'en',
@@ -163,7 +172,7 @@ def create_app(paths, engine, status, spool):
             candidate = dict(values)
             interval = (request.form.get('poll_interval_s') or '').strip()
             candidate.update(
-                odoo_base_url=(request.form.get('odoo_base_url') or '').strip().rstrip('/'),
+                odoo_base_url=config_mod.normalise_base_url(request.form.get('odoo_base_url')),
                 bridge_label=(request.form.get('bridge_label') or '').strip(),
                 ui_lang=request.form.get('ui_lang') or 'en',
                 log_level=request.form.get('log_level') or 'INFO',
@@ -194,7 +203,12 @@ def create_app(paths, engine, status, spool):
     @app.route('/api/poll-now', methods=['POST'])
     def api_poll_now():
         engine.request_poll_now()
-        return jsonify({'ok': True})
+        # The Status page's button is a plain form post: answering it with
+        # JSON leaves the person staring at {"ok":true} instead of the page
+        # they pressed it on. A script asking for JSON still gets JSON.
+        if request.is_json:
+            return jsonify({'ok': True})
+        return redirect(url_for('home'))
 
     @app.route('/api/test-device', methods=['POST'])
     def api_test_device():
@@ -214,7 +228,7 @@ def create_app(paths, engine, status, spool):
 
     def _probe(values):
         """One real poll, to prove the address and the token before saving."""
-        base = (values.get('odoo_base_url') or '').rstrip('/')
+        base = config_mod.normalise_base_url(values.get('odoo_base_url'))
         if not base:
             return False, 'no address'
         if base.startswith('http://') and not values.get('allow_insecure'):
