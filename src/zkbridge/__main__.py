@@ -95,7 +95,7 @@ def main(argv=None):
         # Printed, not just logged: the installer reads it back to the person
         # standing there, and it is the only moment the code is convenient.
         print('Not configured yet. Open http://127.0.0.1:%s/ — access code: %s'
-              % (port, pin))
+              % (port, pin), flush=True)
     if args.open:
         webbrowser.open('http://127.0.0.1:%s/' % port)
 

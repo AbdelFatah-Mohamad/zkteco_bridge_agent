@@ -17,8 +17,20 @@ icacls $Data /inheritance:r /grant:r "SYSTEM:(OI)(CI)F" "BUILTIN\Administrators:
 & "$Program\zkbridge-service.exe" install
 & "$Program\zkbridge-service.exe" start
 
-Start-Sleep -Seconds 4
-$pin = Get-Content "$Data\ui_pin.txt" -ErrorAction SilentlyContinue
+# The first start of a fresh build can take a while: the antivirus scans the
+# whole folder before letting it run. Wait for the access code, not a guess.
+$pin = $null
+for ($i = 0; $i -lt 60 -and -not $pin; $i++) {
+    Start-Sleep -Seconds 1
+    $pin = Get-Content "$Data\ui_pin.txt" -ErrorAction SilentlyContinue
+    if ((Get-Service ZKTecoBridge).Status -eq 'Stopped') { break }
+}
+if (-not $pin) {
+    Write-Host ""
+    Write-Host "The bridge did not start. The reason is at the end of:" -ForegroundColor Red
+    Write-Host "  $Program\zkbridge-service.err.log"
+    exit 1
+}
 Write-Host ""
 Write-Host "ZKTeco bridge installed and started."
 Write-Host "  Open        http://127.0.0.1:8709/"

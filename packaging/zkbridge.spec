@@ -11,7 +11,7 @@ root = pathlib.Path(SPECPATH).parent
 src = root / 'src'
 
 a = Analysis(
-    [str(src / 'zkbridge' / '__main__.py')],
+    [str(root / 'packaging' / 'entry.py')],
     pathex=[str(src)],
     datas=[
         (str(src / 'zkbridge' / 'web' / 'templates'), 'zkbridge/web/templates'),
@@ -19,6 +19,7 @@ a = Analysis(
         (str(src / 'zkbridge' / 'vendor' / 'ZK_SHA256SUMS'), 'zkbridge/vendor'),
     ],
     hiddenimports=[
+        'zkbridge', 'zkbridge.__main__',
         'waitress', 'waitress.server',
         'zkbridge.vendor.zk', 'zkbridge.vendor.zk.base',
         'zkbridge.vendor.zk.const', 'zkbridge.vendor.zk.user',
@@ -29,5 +30,5 @@ a = Analysis(
     noarchive=False,
 )
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, name='zkbridge', console=True, upx=False)
+exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='zkbridge', console=True, upx=False)
 coll = COLLECT(exe, a.binaries, a.datas, name='zkbridge', upx=False)
